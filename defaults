@@ -37,7 +37,8 @@ UPDATE_IF_IDLE=${UPDATE_IF_IDLE:-true}
 
 # What time we restart the valheim-server
 # This is usful to mitigate the effects of memory/resource leaks
-RESTART_CRON=${RESTART_CRON-0 5 * * *}
+#Except that it does not come back from a restart so just leaving it blank for now.
+RESTART_CRON=
 RESTART_IF_IDLE=${RESTART_IF_IDLE:-true}
 
 # World backup related settings
