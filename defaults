@@ -5,6 +5,10 @@
 # The timezone this container is running in
 TZ=${TZ:-Etc/UTC}
 
+# User and group id for the user running valheim-server
+PUID=${PUID:-0}
+PGID=${PGID:-0}
+
 # Valheim dedicated server related values
 WORLD_NAME=${WORLD_NAME:-Dedicated}
 SERVER_NAME=${SERVER_NAME:-My Server}
@@ -25,6 +29,14 @@ DEBUG_START_FRESH=${DEBUG_START_FRESH:-false}
 DEBUG_REINSTALL_VALHEIM_PLUS=${DEBUG_REINSTALL_VALHEIM_PLUS:-false}
 # Flat to make bepinex-updater reinstall the BepInEx ZIP over vanilla server
 DEBUG_REINSTALL_BEPINEX=${DEBUG_REINSTALL_BEPINEX:-false}
+
+# How we behave when checking for whether the server is idle, if it is not
+# public (which would mean that we could just query for user activity).
+# How long to wait for incoming UDP datagrams, in seconds
+IDLE_DATAGRAM_WINDOW=3
+# How many incoming UDP datagrams we can tolerate before declaring the server
+# as un-idle (allows some buffer for UDP querying or random UDP pings)
+IDLE_DATAGRAM_MAX_COUNT=30
 
 # How often we check for Valheim server updates
 # This used to be 900 (15 min) and is here for backwards
@@ -51,6 +63,7 @@ BACKUPS_MAX_AGE=${BACKUPS_MAX_AGE:-3}
 BACKUPS_MAX_COUNT=${BACKUPS_MAX_COUNT:-0}
 BACKUPS_IF_IDLE=${BACKUPS_IF_IDLE:-true}
 BACKUPS_IDLE_GRACE_PERIOD=${BACKUPS_IDLE_GRACE_PERIOD:-3600}
+BACKUPS_ZIP=${BACKUPS_ZIP:-true}
 
 # Supervisor http
 SUPERVISOR_HTTP=${SUPERVISOR_HTTP:-false}
@@ -67,6 +80,7 @@ STATUS_HTTP_HTDOCS=${STATUS_HTTP_HTDOCS%/}
 
 # Mod support
 VALHEIM_PLUS=${VALHEIM_PLUS:-false}
+VALHEIM_PLUS_RELEASE=${VALHEIM_PLUS_RELEASE:-latest}
 VALHEIM_PLUS_CFG_ENV_PREFIX=${VALHEIM_PLUS_CFG_ENV_PREFIX:-VPCFG_}
 BEPINEX=${BEPINEX:-false}
 BEPINEX_CFG_ENV_PREFIX=${BEPINEX_CFG_ENV_PREFIX:-BEPINEXCFG_}
@@ -106,7 +120,7 @@ SYSLOG_REMOTE_PORT=${SYSLOG_REMOTE_PORT:-514}
 SYSLOG_REMOTE_AND_LOCAL=${SYSLOG_REMOTE_AND_LOCAL:-true}
 
 # Server status
-SERVER_STATUS_FILE=${SERVER_STATUS_FILE:-/var/run/valheim-server.status}
+SERVER_STATUS_FILE=${SERVER_STATUS_FILE:-/var/run/valheim/valheim-server.status}
 
 # Hooks
 PRE_SUPERVISOR_HOOK=${PRE_SUPERVISOR_HOOK:-}
@@ -129,6 +143,8 @@ POST_SERVER_SHUTDOWN_HOOK=${POST_SERVER_SHUTDOWN_HOOK:-}
 PRE_BEPINEX_CONFIG_HOOK=${PRE_BEPINEX_CONFIG_HOOK:-}
 POST_BEPINEX_CONFIG_HOOK=${POST_BEPINEX_CONFIG_HOOK:-}
 
-# Adminlist/Bannedlist IDs
+# Adminlist/Bannedlist/Permittedlist IDs
 ADMINLIST_IDS=${ADMINLIST_IDS:-}
 BANNEDLIST_IDS=${BANNEDLIST_IDS:-}
+PERMITTEDLIST_IDS=${PERMITTEDLIST_IDS:-}
+

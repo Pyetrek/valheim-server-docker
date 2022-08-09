@@ -4,8 +4,6 @@
 Valheim Server in a Docker Container (with [BepInEx](#bepinexpack-valheim) and [ValheimPlus](#valheimplus) support)  
 This project is hosted at [https://github.com/lloesche/valheim-server-docker](https://github.com/lloesche/valheim-server-docker)  
 
-[![Docker Badge](https://img.shields.io/docker/pulls/lloesche/valheim-server.svg)](https://hub.docker.com/r/lloesche/valheim-server)
-
 
 # Table of contents
 <!-- vim-markdown-toc GFM -->
@@ -47,7 +45,6 @@ This project is hosted at [https://github.com/lloesche/valheim-server-docker](ht
   * [ValheimPlus](#valheimplus)
     * [Updates](#updates-1)
     * [Configuration](#configuration-1)
-      * [Server data rate](#server-data-rate)
       * [Disable server password](#disable-server-password)
 * [Changing startup CMD in Portainer](#changing-startup-cmd-in-portainer)
 * [Synology Help](#synology-help)
@@ -67,19 +64,19 @@ This project is hosted at [https://github.com/lloesche/valheim-server-docker](ht
 
 # Basic Docker Usage
 
-The name of the Docker image is `lloesche/valheim-server`.
+The name of the Docker image is `ghcr.io/lloesche/valheim-server`.
 
 Volume mount the server config directory to `/config` within the Docker container.
 
 If you have an existing world on a Windows system you can copy it from e.g.  
-  `C:\Users\Lukas\AppData\LocalLow\IronGate\Valheim\worlds`
+  `C:\Users\Lukas\AppData\LocalLow\IronGate\Valheim\worlds_local`
 to e.g.  
-  `$HOME/valheim-server/config/worlds`
+  `$HOME/valheim-server/config/worlds_local`
 and run the image with `$HOME/valheim-server/config` volume mounted to `/config` inside the container.
 The container directory `/opt/valheim` contains the downloaded server. It can optionally be volume mounted to avoid having to download the server on each fresh start.
 
 ```
-$ mkdir -p $HOME/valheim-server/config/worlds $HOME/valheim-server/data
+$ mkdir -p $HOME/valheim-server/config/worlds_local $HOME/valheim-server/data
 # copy existing world
 $ docker run -d \
     --name valheim-server \
@@ -91,14 +88,14 @@ $ docker run -d \
     -e SERVER_NAME="My Server" \
     -e WORLD_NAME="Neotopia" \
     -e SERVER_PASS="secret" \
-    lloesche/valheim-server
+    ghcr.io/lloesche/valheim-server
 ```
 
 Warning: `SERVER_PASS` must be at least 5 characters long. Otherwise `valheim_server.x86_64` will refuse to start!
 
 A fresh start will take several minutes depending on your Internet connection speed as the container will download the Valheim dedicated server from Steam (~1 GB).
 
-Do not forget to modify `WORLD_NAME` to reflect the name of your world! For existing worlds that is the filename in the `worlds/` folder without the `.db/.fwl` extension.
+Do not forget to modify `WORLD_NAME` to reflect the name of your world! For existing worlds that is the filename in the `worlds_local/` folder without the `.db/.fwl` extension.
 
 If you want to play with friends over the Internet and are behind NAT make sure that UDP ports 2456-2457 are forwarded to the container host.
 Also ensure they are publicly accessible in any firewall.
@@ -115,6 +112,7 @@ Without it you will see a message `Warning: failed to set thread priority` in th
 
 # Environment Variables
 **All variable names and values are case-sensitive!**
+
 | Name | Default | Purpose |
 |----------|----------|-------|
 | `SERVER_NAME` | `My Server` | Name that will be shown in the server browser |
@@ -123,9 +121,12 @@ Without it you will see a message `Warning: failed to set thread priority` in th
 | `SERVER_PASS` | `secret` | Password for logging into the server - min. 5 characters! |
 | `SERVER_PUBLIC` | `true` | Whether the server should be listed in the server browser (`true`) or not (`false`) |
 | `SERVER_ARGS` |  | Additional Valheim server CLI arguments |
-| `ADMINLIST_IDS` |  | Space separated list of admin SteamIDs. Overrides any existing adminlist.txt entries! |
-| `BANNEDLIST_IDS` |  | Space separated list of banned SteamIDs. Overrides any existing bannedlist.txt entries! |
+| `ADMINLIST_IDS` |  | Space separated list of admin SteamIDs in SteamID64 format. Overrides any existing adminlist.txt entries! |
+| `BANNEDLIST_IDS` |  | Space separated list of banned SteamIDs in SteamID64 format. Overrides any existing bannedlist.txt entries! |
+| `PERMITTEDLIST_IDS` |  | Space separated list of whitelisted SteamIDs in SteamID64 format. Overrides any existing permittedlist.txt entries! |
 | `UPDATE_CRON` | `*/15 * * * *` | [Cron schedule](https://en.wikipedia.org/wiki/Cron#Overview) for update checks (disabled if set to an empty string or if the legacy `UPDATE_INTERVAL` is set) |
+| `IDLE_DATAGRAM_WINDOW` | `3` | The time window, in seconds, to wait for incoming UDP datagrams on non-public servers before determining if the server is idle |
+| `IDLE_DATAGRAM_MAX_COUNT` | `30` | The number of incoming UDP datagrams the container should tolerate (including useless datagrams such as mDNS, as well as useful datagrams like queries against the UDP query port and active connections by players) on non-public servers before deciding that the server is not idle |
 | `UPDATE_IF_IDLE` | `true` | Only run update check if no players are connected to the server (`true` or `false`) |
 | `RESTART_CRON` | `0 5 * * *` | [Cron schedule](https://en.wikipedia.org/wiki/Cron#Overview) for server restarts (disabled if set to an empty string) |
 | `RESTART_IF_IDLE` | `true` | Only run daily restart if no players are connected to the server (`true` or `false`) |
@@ -137,14 +138,16 @@ Without it you will see a message `Warning: failed to set thread priority` in th
 | `BACKUPS_MAX_COUNT` | `0` | Maximum number of backups kept, 0 means infinity |
 | `BACKUPS_IF_IDLE` | `true` | Backup even when no players have been connected for a while |
 | `BACKUPS_IDLE_GRACE_PERIOD` | `3600` | Grace period in seconds after the last player has disconnected in which we will still create backups when `BACKUPS_IF_IDLE=false` |
+| `BACKUPS_ZIP` | `true` | Compress Backups with `zip`. If set to `false` Backups will be stored uncompressed. |
 | `PERMISSIONS_UMASK` | `022` | [Umask](https://en.wikipedia.org/wiki/Umask) to use for backups, config files and directories |
 | `STEAMCMD_ARGS` | `validate` | Additional steamcmd CLI arguments |
 | `VALHEIM_PLUS` | `false` | Whether [ValheimPlus](https://github.com/valheimPlus/ValheimPlus) mod should be loaded (config in `/config/valheimplus`, additional plugins in `/config/valheimplus/plugins`). Can not be used together with `BEPINEX`. |
+| `VALHEIM_PLUS_RELEASE` | `latest` | Which version of [ValheimPlus](https://github.com/valheimPlus/ValheimPlus) to download. Will default to latest available. To specify a specific tag set to `tags/0.9.9.8` |
 | `BEPINEX` | `false` | Whether [BepInExPack Valheim](https://valheim.thunderstore.io/package/denikson/BepInExPack_Valheim/) mod should be loaded (config in `/config/bepinex`, plugins in `/config/bepinex/plugins`). Can not be used together with `VALHEIM_PLUS`. |
 | `SUPERVISOR_HTTP` | `false` | Turn on supervisor's http server |
 | `SUPERVISOR_HTTP_PORT` | `9001` | Set supervisor's http server port |
 | `SUPERVISOR_HTTP_USER` | `admin` | Supervisor http server username |
-| `SUPERVISOR_HTTP_PASS` |  | Supervisor http server password. http server will not be started if password is not set! |
+| `SUPERVISOR_HTTP_PASS` |  | Supervisor http server password |
 | `STATUS_HTTP` | `false` | Turn on the status http server. Only useful on public servers (`SERVER_PUBLIC=true`). |
 | `STATUS_HTTP_PORT` | `80` | Status http server tcp port |
 | `STATUS_HTTP_CONF` | `/config/httpd.conf` | Path to the [busybox httpd config](https://git.busybox.net/busybox/tree/networking/httpd.c) |
@@ -152,6 +155,8 @@ Without it you will see a message `Warning: failed to set thread priority` in th
 | `SYSLOG_REMOTE_HOST` |  | Remote syslog host or IP to send logs to |
 | `SYSLOG_REMOTE_PORT` | `514` | Remote syslog UDP port to send logs to |
 | `SYSLOG_REMOTE_AND_LOCAL` | `true` | When sending logs to a remote syslog server also log local |
+| `PUID` | `0` | UID to run valheim-server as |
+| `PGID` | `0` | GID to run valheim-server as |
 
 There are a few undocumented environment variables that could break things if configured wrong. They can be found in [`defaults`](defaults).
 
@@ -412,20 +417,20 @@ This update schedule can be changed using the `UPDATE_CRON` environment variable
 
 
 # Backups
-The container will on startup and periodically create a backup of the `worlds/` directory.
+The container will on startup and periodically create a backup of the `worlds_local/` directory.
 
 The default is once per hour but can be changed using the `BACKUPS_CRON` environment variable.
 
 Default backup directory is `/config/backups/` within the container. A different directory can be set using the `BACKUPS_DIRECTORY` environment variable.
 It makes sense to have this directory be a volume mount from the host.
-Warning: do not make the backup directory a subfolder of `/config/worlds/`. Otherwise each backup will backup all previous backups.
+Warning: do not make the backup directory a subfolder of `/config/worlds_local/`. Otherwise each backup will backup all previous backups.
 
 By default 3 days worth of backups will be kept. A different number can be configured using `BACKUPS_MAX_AGE`. The value is in days.
 
 It is possible to configure a maximum number of to-be-kept backup files with `BACKUPS_MAX_COUNT`. When going over this limit, the oldest file(s) will be deleted. The default is `0` which means no limit. Note that `BACKUPS_MAX_AGE` will always be respected: if backups get too old, they will be deleted even if `BACKUPS_MAX_COUNT` was not yet reached (or is `0`).
 
 Beware that backups are performed while the server is running. As such files might be in an open state when the backup runs.
-However the `worlds/` directory also contains a `.db.old` file for each world which should always be closed and in a consistent state.
+However the `worlds_local/` directory also contains a `.db.old` file for each world which should always be closed and in a consistent state.
 
 See [Copy backups to another location](#copy-backups-to-another-location) for an example of how to copy backups offsite.
 
@@ -434,6 +439,7 @@ there is a grace period `BACKUPS_IDLE_GRACE_PERIOD` in seconds after which backu
 dedicated server only saves the world in 20 minute intervals and on shutdown. So to make sure that we have a consistent world file backup of
 the most recent changes we want to wait out one world save. This grace period also needs to be long enough so that our `BACKUPS_CRON` had a chance to run.
 
+`BACKUPS_ZIP=false` can be used to store backups uncompressed in the backup directory. Please note that this will increase the filesize of the backups, due to no compression.
 
 ## Manual backup
 Sending `SIGHUP` to the `valheim-backup` service or restarting the service will create a backup.
@@ -642,20 +648,6 @@ This also means your clients always need to run the latest ValheimPlus version o
 ### Configuration
 See [Mod config from Environment Variables](#mod-config-from-environment-variables)
 
-#### Server data rate
-A popular change is to increase the server send rate.
-
-To do so enable ValheimPlus (`VALHEIM_PLUS=true`) and configure the following section in `/config/valheimplus/valheim_plus.cfg`
-```
-[Server]
-enabled=true
-enforceMod=false
-dataRate=600
-```
-(Or whatever `dataRate` value you require. The value is in kb/s with a default of 60.)
-
-Alternatively start with `-e VPCFG_Server_enabled=true -e VPCFG_Server_enforceMod=false -e VPCFG_Server_dataRate=600`.
-
 #### Disable server password
 Another popular mod for LAN play that does not require the clients to run ValheimPlus is to turn off password authentication.
 
@@ -812,8 +804,24 @@ We have had [a report from a QNAP user](https://github.com/lloesche/valheim-serv
 valheim-updater [ 0%] !!! Fatal Error: Steamcmd needs 250MB of free disk space to update.
 valheim-updater src/tier0/threadtools.cpp (3553) : Assertion Failed: Illegal termination of worker thread 'Thread(0x0x58a1d8f0/0x0xf7780b'
 ```
+This appears to be due to a bad Steam/ZFS interaction akin to [this Steam bug](https://github.com/ValveSoftware/steam-for-linux/issues/4982) where very large ZFS volumes get interpreted as very small due to bad overflow handling. There are two workarounds available. Use a non-ZFS volume, or set a quota on the volume, e.g.:
 
-The only workaround they found was to use a non-ZFS volume.
+1. Connect to the QNAP SSH console.
+2. Get the ZFS volume ID from within the container
+```
+df /opt/valheim | tail -n 1 | awk '{ print $1 }'
+```
+3. Set the quota to 2TB or less from the QNAP SSH console:
+```
+zfs set quota=1TB "volume_id_here"
+```
+
+You could also try this one-liner from the SSH console:
+```
+CONTAINER="your_valheim_container name/id" \
+  docker exec -t "$CONTAINER" df /opt/valheim | tail -n 1 | awk '{ print $1 }' | \
+  xargs -I zfs_id sudo zfs set quota=1TB zfs_id
+```
 
 If you have access to a QNAP NAS running ZFS and can reproduce/debug this issue further, please open a new issue with your findings so we can update this section and provide more information here.
 
